@@ -2,7 +2,7 @@ playerList = []
 currentMatch = 0
 
 while(True):
-    print("input a player name, type \"EXIT\" to exit:" , end=" ")
+    print("input a player name, type \"EXIT\" to continue:" , end=" ")
     Player = input()
 
     if (Player != "EXIT"):
