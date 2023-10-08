@@ -1,73 +1,98 @@
-playerList = []
-currentMatch = 0
+from readchar import readkey,key
+import os
 
-while(True):
-    print("input a player name, type \"EXIT\" to continue:" , end=" ")
-    Player = input()
+players = []
+n = 0
+rounds = []
+players_dict = {}
 
-    if (Player != "EXIT"):
-        playerList.append(Player)
+while True:
+    p = input("Input a player name press. ENTER when done: ")
+    if p != "":
+        players.append(p)
     else:
+        os.system("clear")
         break
 
-print(" ")
+c = 0
+first = False
 
-def listPlayers():
-    for i in range(len(playerList)):
-        print(str(i+1) + ") " + playerList[i])
+for p in players:
+    players_dict[p] = 0
 
-
-while(True):
-    print("Game " + playerList[currentMatch] + " vs. " + playerList[currentMatch+1] + "\n")
-    print("input a command: \n")
-
-    print("1) " + playerList[currentMatch] + " won round")
-    print("2) " + playerList[currentMatch+1] + " won round")
-    print("3) Add player")
-    print("4) Remove player")
-    print("5) List players")
-    print("6) Exit \n")
-
-    print(": " , end=" ")
-    Command = input()
-
-    if (Command == "1"):
-        print(playerList[currentMatch+1] + " has lost the round")
-        playerList.insert(0, playerList.pop(currentMatch+1))
-        currentMatch = currentMatch + 1
-        if(currentMatch + 1 >= len(playerList)):
-            playerList.append(playerList.pop(0))
-            playerList.insert(0, playerList.pop(currentMatch-1))
-            currentMatch = 0
-    elif (Command == "2"):
-        print(playerList[currentMatch] + " has lost the round")
-        playerList.insert(0, playerList.pop(currentMatch))
-        currentMatch = currentMatch + 1
-        if(currentMatch + 1 >= len(playerList)):
-            playerList.append(playerList.pop(0))
-            playerList.insert(0, playerList.pop(currentMatch-1))
-            currentMatch = 0
-    elif (Command == "3"):
-        print("input extra player name, type \"EXIT\" to exit:" , end=" ")
-        Player = input()
-        if (Player != "EXIT"):
-            playerList.append(Player)
-    elif (Command == "4"):
-        listPlayers()
-        print("Type select player to remove: ", end=" ")
-        PlayerNum = input()
-        try:
-            PlayerNum = int(PlayerNum)
-        except:
-            print("Enter valid player option")
-            pass
-        if(PlayerNum-1 > len(playerList) or PlayerNum-1 < 0):
-            print("Enter valid player option")
-            pass
-        playerList.pop(PlayerNum-1)
-    elif (Command == "5"):
-        listPlayers()
-    elif (Command == "6"):
-        exit()
-    else:
-        print("Enter valid option")
+while True:
+    print(f'Round {c+1}: {players[n]} vs. {players[n+1]}')
+    print("1) " + players[n] + " won round")
+    print("2) " + players[n+1] + " won round")
+    print("3) Undo last match")
+    print("4) Add player")
+    print("5) Remove player")
+    print("6) List players")
+    print("7) List round history")
+    print("8) List player wins")
+    print("9) Exit")
+    print("> ", end="")
+    inpt = readkey()
+    print()
+    os.system("clear")
+    if inpt == "1":
+        rounds.append((f"{players[n]} won against {players[n+1]}"))
+        print(rounds[len(rounds)-1])
+        p = players.pop(n+1)
+        players_dict[players[0]] += 1
+        players.append(p)
+        c += 1
+        
+    elif inpt == "2":
+        rounds.append((f"{players[n+1]} won against {players[n]}"))
+        print(rounds[len(rounds)-1])
+        p = players.pop(n)
+        players_dict[players[0]] += 1
+        players.append(p)
+        c += 1
+    elif inpt == "3":
+        if c > 0:
+            rounds.pop(len(rounds)-1)
+            p = players.pop(len(players)-1)
+            players.insert(1,p)
+            players_dict[players[0]] -= 1
+            c -= 1
+    elif inpt == "4":
+        p = input("Input a player name. Press ENTER when done: ")
+        if p != "":
+            players.append(p)
+        else:
+            break
+    elif inpt == "5":
+        while True:
+            for i in range(len(players)):
+                print(f"{i+1}) {players[i]}")
+            print("Type a number to remove a player. Press ENTER to exit")
+            k = readkey()
+            if k == key.ENTER:
+                os.system("clear")
+                break
+            try: 
+                players.pop(int(k)-1)
+            except (ValueError, IndexError): pass
+            os.system("clear")
+    elif inpt == "6":
+        for i in range(len(players)):
+                print(f"{i+1}) {players[i]}")
+        print("Press any key to continue.")
+        readkey()
+        os.system("clear")
+    elif inpt == "7":
+        for i in range(len(rounds)):
+            print(f"Round {i+1}: {rounds[i]}")
+        print("Press any key to continue.")
+        readkey()
+        os.system("clear")
+    elif inpt == "8":
+        for k,v in sorted(players_dict.items(), key=lambda x:x[1],reverse=True):
+            print(f"{k}: {v} wins")
+        print("Press any key to continue.")
+        readkey()
+        os.system("clear")
+    elif inpt == "9":
+        break
