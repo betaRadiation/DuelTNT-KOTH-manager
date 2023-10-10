@@ -1,98 +1,121 @@
-from readchar import readkey,key
-import os
+import discord
+from discord.ext import commands
+from discord import app_commands
 
-players = []
-n = 0
-rounds = []
-players_dict = {}
+# Request Intents
+intents = discord.Intents.default()
+intents.guilds = True
+intents.members = True
 
-while True:
-    p = input("Input a player name press. ENTER when done: ")
-    if p != "":
-        players.append(p)
-    else:
-        os.system("clear")
-        break
+# Read token (create file "token.txt" and put your key in plain text for this to work)
+tokenFile = open("token.txt", "r")
+token = tokenFile.read()
+tokenFile.close()
 
-c = 0
-first = False
+# Create client object
+client = discord.Client(intents=intents)
+tree = app_commands.CommandTree(client)
 
-for p in players:
-    players_dict[p] = 0
+# Create game variables
+playerList = [ ]
 
-while True:
-    print(f'Round {c+1}: {players[n]} vs. {players[n+1]}')
-    print("1) " + players[n] + " won round")
-    print("2) " + players[n+1] + " won round")
-    print("3) Undo last match")
-    print("4) Add player")
-    print("5) Remove player")
-    print("6) List players")
-    print("7) List round history")
-    print("8) List player wins")
-    print("9) Exit")
-    print("> ", end="")
-    inpt = readkey()
-    print()
-    os.system("clear")
-    if inpt == "1":
-        rounds.append((f"{players[n]} won against {players[n+1]}"))
-        print(rounds[len(rounds)-1])
-        p = players.pop(n+1)
-        players_dict[players[0]] += 1
-        players.append(p)
-        c += 1
-        
-    elif inpt == "2":
-        rounds.append((f"{players[n+1]} won against {players[n]}"))
-        print(rounds[len(rounds)-1])
-        p = players.pop(n)
-        players_dict[players[0]] += 1
-        players.append(p)
-        c += 1
-    elif inpt == "3":
-        if c > 0:
-            rounds.pop(len(rounds)-1)
-            p = players.pop(len(players)-1)
-            players.insert(1,p)
-            players_dict[players[0]] -= 1
-            c -= 1
-    elif inpt == "4":
-        p = input("Input a player name. Press ENTER when done: ")
-        if p != "":
-            players.append(p)
+# Log onto discord 
+@client.event
+async def on_ready():
+    await tree.sync()
+    print(f"We have logged in as {client.user}")
+
+group = app_commands.Group(name="koth", description="koth")
+
+# Returns a username form ID
+async def userFormId(id: int):
+    member = await client.get_user(id)
+    return member
+
+class kothUI(discord.ui.View):
+    global playerList
+
+    def __init__(self):
+        super().__init__()
+
+
+    async def embed(self):
+        global playerList
+        if (len(playerList) > 1):
+            embed=discord.Embed(title="Current Match", color=0x986a44)
+            embed.add_field(name="", value=f"Player 1 {await client.fetch_user(playerList[0])} vs. Player 2 {await client.fetch_user(playerList[1])}", inline=False)
+            embed.add_field(name="", value="Select a winner", inline=False)
         else:
-            break
-    elif inpt == "5":
-        while True:
-            for i in range(len(players)):
-                print(f"{i+1}) {players[i]}")
-            print("Type a number to remove a player. Press ENTER to exit")
-            k = readkey()
-            if k == key.ENTER:
-                os.system("clear")
-                break
-            try: 
-                players.pop(int(k)-1)
-            except (ValueError, IndexError): pass
-            os.system("clear")
-    elif inpt == "6":
-        for i in range(len(players)):
-                print(f"{i+1}) {players[i]}")
-        print("Press any key to continue.")
-        readkey()
-        os.system("clear")
-    elif inpt == "7":
-        for i in range(len(rounds)):
-            print(f"Round {i+1}: {rounds[i]}")
-        print("Press any key to continue.")
-        readkey()
-        os.system("clear")
-    elif inpt == "8":
-        for k,v in sorted(players_dict.items(), key=lambda x:x[1],reverse=True):
-            print(f"{k}: {v} wins")
-        print("Press any key to continue.")
-        readkey()
-        os.system("clear")
-    elif inpt == "9":
-        break
+            embed=discord.Embed(title="Add more players", color=0x986a44)
+        return embed
+
+    def logic(winner):
+        global playerList
+        if (winner == 0):
+            playerList.append(playerList.pop(1))
+        else:
+            playerList.append(playerList.pop(0))
+
+                
+            
+        
+    @discord.ui.button(label="Player 1 wins", style=discord.ButtonStyle.danger)
+    async def player1(self, interaction, button: discord.ui.button):
+        kothUI.logic(0)
+        await interaction.response.edit_message(embed = await self.embed())
+    @discord.ui.button(label="Player 2 wins", style=discord.ButtonStyle.secondary)
+    async def optionB(self, interaction, button: discord.ui.button):
+        kothUI.logic(1)
+        await interaction.response.edit_message(embed = await self.embed())
+
+
+# Shows the current game if there is one
+# @tree.command(name = "koth", description = "Shows dtnt KOTH", guild=discord.Object(id=1154608524450603068)) 
+@tree.command(name = "show", description = "Shows the current match")
+async def show(interaction):
+    view = kothUI()
+    await interaction.response.send_message(embed=await view.embed(), view=view)
+
+
+
+# Adds a right click menu to add a user to game
+@tree.context_menu(name='Add to game')
+async def addToGame(interaction: discord.Interaction, member: discord.Member):
+    if (member.id not in playerList):
+        playerList.append(member.id)
+        await interaction.response.send_message(f"Added {member.mention} to game")
+    else:
+        await interaction.response.send_message(f"{member.mention} is already in the game")
+
+
+@tree.context_menu(name='Remove from game')
+async def removeFromGame(interaction: discord.Interaction, member: discord.Member):
+    if (member.id in playerList):
+        playerList.pop(playerList.index(member.id))
+        await interaction.response.send_message(f"Removed {member.mention} from game")
+    else:
+        await interaction.response.send_message(f"{member.mention} is not in the game")
+
+@tree.command(name = "leave", description = "Leave the game")
+async def leave(interaction: discord.Interaction):
+    if (interaction.user.id in playerList):
+        playerList.pop(playerList.index(interaction.user.id))
+        await interaction.response.send_message("Removed you from game")
+    else:
+        await interaction.response.send_message("You are not in the game")
+
+@tree.command(name = "join", description = "Join the game")
+async def join(interaction: discord.Interaction):
+    if (interaction.user.id not in playerList):
+        playerList.append(interaction.user.id)
+        await interaction.response.send_message("Added you to game")
+    else:
+        await interaction.response.send_message("You are already in the game")
+
+@tree.command(name = "clear", description = "Clears the player list")
+async def clear(interaction):
+    global playerList
+    playerList = []
+    await interaction.response.send_message("Cleared player list!")
+
+client.run(token)
