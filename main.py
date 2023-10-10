@@ -37,6 +37,7 @@ class kothUI(discord.ui.View):
 
     def __init__(self):
         super().__init__()
+        self.value = None
 
 
     async def embed(self):
