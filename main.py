@@ -17,10 +17,7 @@ client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
 # Create game variables
-playerList = []
-inGame = []
-currentMatch = 0
-matchNum = 1
+playerList = [ ]
 
 # Log onto discord 
 @client.event
@@ -35,34 +32,55 @@ async def userFormId(id: int):
     member = await client.get_user(id)
     return member
 
+class kothUI(discord.ui.View):
+    global playerList
+
+    def __init__(self):
+        super().__init__()
+
+
+    async def embed(self):
+        global playerList
+        if (len(playerList) > 1):
+            embed=discord.Embed(title="Current Match", color=0x986a44)
+            embed.add_field(name="", value=f"Player 1 {await client.fetch_user(playerList[0])} vs. Player 2 {await client.fetch_user(playerList[1])}", inline=False)
+            embed.add_field(name="", value="Select a winner", inline=False)
+        else:
+            embed=discord.Embed(title="Add more players", color=0x986a44)
+        return embed
+
+    def logic(winner):
+        global playerList
+        if (winner == 0):
+            playerList.append(playerList.pop(1))
+        else:
+            playerList.append(playerList.pop(0))
+
+                
+            
+        
+    @discord.ui.button(label="Player 1 wins", style=discord.ButtonStyle.danger)
+    async def player1(self, interaction, button: discord.ui.button):
+        kothUI.logic(0)
+        await interaction.response.edit_message(embed = await self.embed())
+    @discord.ui.button(label="Player 2 wins", style=discord.ButtonStyle.secondary)
+    async def optionB(self, interaction, button: discord.ui.button):
+        kothUI.logic(1)
+        await interaction.response.edit_message(embed = await self.embed())
+
 
 # Shows the current game if there is one
 # @tree.command(name = "koth", description = "Shows dtnt KOTH", guild=discord.Object(id=1154608524450603068)) 
 @tree.command(name = "show", description = "Shows the current match")
-async def koth(interaction):
-    if (len(playerList) > 1):
-        if (len(inGame < 2)):
-            inGame = [playerList[0], playerList[1]]
-        
-        embed=discord.Embed(title="Match " + str(matchNum), color=0x986a44)
-        embed.add_field(name="", value=await userFormId(inGame[0]) + " vs. " + await userFormId(inGame[1]))
-        embed.add_field(name="", value="\nHint: User /koth winner ``user``")
-    else:
-        embed=discord.Embed(title="Add more players")
-    
-    await interaction.response.send_message(embed=embed)
+async def show(interaction):
+    view = kothUI()
+    await interaction.response.send_message(embed=await view.embed(), view=view)
 
-
-@tree.command(name = "winner", description = "Selects a winner for the current match")
-@app_commands.describe(member="Enter the winning member number")
-async def winner(interaction, member: discord.Member):
-    pass
 
 
 # Adds a right click menu to add a user to game
 @tree.context_menu(name='Add to game')
 async def addToGame(interaction: discord.Interaction, member: discord.Member):
-    # The format_dt function formats the date time into a human readable representation in the official client
     if (member.id not in playerList):
         playerList.append(member.id)
         await interaction.response.send_message(f"Added {member.mention} to game")
@@ -72,34 +90,33 @@ async def addToGame(interaction: discord.Interaction, member: discord.Member):
 
 @tree.context_menu(name='Remove from game')
 async def removeFromGame(interaction: discord.Interaction, member: discord.Member):
-    # The format_dt function formats the date time into a human readable representation in the official client
     if (member.id in playerList):
         playerList.pop(playerList.index(member.id))
         await interaction.response.send_message(f"Removed {member.mention} from game")
-    elif (existingGame == False):
-        await interaction.response.send_message(f"Please create a KOTH game")
     else:
         await interaction.response.send_message(f"{member.mention} is not in the game")
 
+@tree.command(name = "leave", description = "Leave the game")
+async def leave(interaction: discord.Interaction):
+    if (interaction.user.id in playerList):
+        playerList.pop(playerList.index(interaction.user.id))
+        await interaction.response.send_message("Removed you from game")
+    else:
+        await interaction.response.send_message("You are not in the game")
 
-@group.command(name = "addplayer", description = "Enter a player name and add them to the queue")
-@app_commands.describe(newPlayer="Enter the player name you want to add")
-async def addPlayer(interaction, newPlayer: str):
-    playerList.append(addPlayer)
+@tree.command(name = "join", description = "Join the game")
+async def join(interaction: discord.Interaction):
+    if (interaction.user.id not in playerList):
+        playerList.append(interaction.user.id)
+        await interaction.response.send_message("Added you to game")
+    else:
+        await interaction.response.send_message("You are already in the game")
 
-
-@group.command(name = "create", description = "Create a KOTH game")
-@app_commands.describe(startingPlayer1="Enter the first players name you want to add (seperated with space)")
-async def startGame(interaction, startingPlayers: str):
-    if (existingGame == False):
-        playerList = startingPlayers.split(" ")
-
-@group.command(name = "end", description = "Ends a KOTH game")
-async def ends(interaction):
-    existingGame = False
+@tree.command(name = "clear", description = "Clears the player list")
+async def clear(interaction):
+    global playerList
     playerList = []
-    currentMatch = 0
-    await interaction.response.send_message("Goodbye")
+    await interaction.response.send_message("Cleared player list!")
 
 client.run(token)
 
@@ -112,7 +129,7 @@ client.run(token)
 #     Player = input()
 
 #     if (Player != "EXIT"):
-#         playerList.append(Player)
+#         playerList.append(Player) https://google.com/
 #     else:
 #         break
 
