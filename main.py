@@ -1,7 +1,8 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-
+import subprocess
+import re
 # Request Intents
 intents = discord.Intents.default()
 intents.guilds = True
@@ -118,5 +119,16 @@ async def clear(interaction):
     global playerList
     playerList = []
     await interaction.response.send_message("Cleared player list!")
+
+@tree.command(name = "neofetch", description = "new (important) feature")
+async def neofetch(interaction):
+    fetch = subprocess.run(['neofetch', '--off'], stdout=subprocess.PIPE)
+    fetch = fetch.stdout.decode('utf-8')
+    fetch = fetch.replace("`", "'")
+    fetch = fetch.replace("`", "'")
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    fetch = ansi_escape.sub('', fetch)
+    await interaction.response.send_message("```" + fetch + "```")
+
 
 client.run(token)
