@@ -160,3 +160,4 @@ cython_debug/
 #.idea/
 bot-env/
 token.txt
+.projectile
